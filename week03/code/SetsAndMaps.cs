@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 
 public static class SetsAndMaps
@@ -21,8 +26,29 @@ public static class SetsAndMaps
     /// <param name="words">An array of 2-character words (lowercase, no duplicates)</param>
     public static string[] FindPairs(string[] words)
     {
-        // TODO Problem 1 - ADD YOUR CODE HERE
-        return [];
+        var wordSet = new HashSet<string>(words);
+        var pairs = new List<string>(words.Length / 2);
+
+        foreach (var word in words)
+        {
+            if (word.Length != 2 || word[0] == word[1])
+            {
+                continue;
+            }
+
+            var reversed = string.Create(2, word, (span, value) =>
+            {
+                span[0] = value[1];
+                span[1] = value[0];
+            });
+
+            if (wordSet.Contains(reversed) && string.Compare(word, reversed, StringComparison.Ordinal) < 0)
+            {
+                pairs.Add($"{word} & {reversed}");
+            }
+        }
+
+        return pairs.ToArray();
     }
 
     /// <summary>
@@ -42,7 +68,18 @@ public static class SetsAndMaps
         foreach (var line in File.ReadLines(filename))
         {
             var fields = line.Split(",");
-            // TODO Problem 2 - ADD YOUR CODE HERE
+            if (fields.Length > 3)
+            {
+                var degree = fields[3].Trim();
+                if (degrees.ContainsKey(degree))
+                {
+                    degrees[degree]++;
+                }
+                else
+                {
+                    degrees[degree] = 1;
+                }
+            }
         }
 
         return degrees;
@@ -66,8 +103,56 @@ public static class SetsAndMaps
     /// </summary>
     public static bool IsAnagram(string word1, string word2)
     {
-        // TODO Problem 3 - ADD YOUR CODE HERE
-        return false;
+        string Normalize(string input)
+        {
+            var builder = new List<char>(input.Length);
+            foreach (var c in input)
+            {
+                if (!char.IsWhiteSpace(c))
+                {
+                    builder.Add(char.ToLowerInvariant(c));
+                }
+            }
+
+            return new string(builder.ToArray());
+        }
+
+        var normalized1 = Normalize(word1);
+        var normalized2 = Normalize(word2);
+
+        if (normalized1.Length != normalized2.Length)
+        {
+            return false;
+        }
+
+        var counts = new Dictionary<char, int>(normalized1.Length);
+        foreach (var c in normalized1)
+        {
+            if (counts.ContainsKey(c))
+            {
+                counts[c]++;
+            }
+            else
+            {
+                counts[c] = 1;
+            }
+        }
+
+        foreach (var c in normalized2)
+        {
+            if (!counts.ContainsKey(c))
+            {
+                return false;
+            }
+
+            counts[c]--;
+            if (counts[c] < 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -96,11 +181,22 @@ public static class SetsAndMaps
 
         var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
 
-        // TODO Problem 5:
-        // 1. Add code in FeatureCollection.cs to describe the JSON using classes and properties 
-        // on those classes so that the call to Deserialize above works properly.
-        // 2. Add code below to create a string out each place a earthquake has happened today and its magitude.
-        // 3. Return an array of these string descriptions.
-        return [];
+        if (featureCollection?.Features == null)
+        {
+            return Array.Empty<string>();
+        }
+
+        var summaries = new List<string>(featureCollection.Features.Length);
+        foreach (var feature in featureCollection.Features)
+        {
+            if (feature?.Properties == null)
+            {
+                continue;
+            }
+
+            summaries.Add($"{feature.Properties.Place} - Mag {feature.Properties.Mag}");
+        }
+
+        return summaries.ToArray();
     }
 }
